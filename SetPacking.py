@@ -2,6 +2,7 @@ import re
 import pyomo.environ as pyo
 import time
 import numpy as np
+import time
 
 model = pyo.ConcreteModel() #instancia o modelo concreto
 
@@ -11,54 +12,55 @@ file = open(str(filename), "r")
 first_line = file.readline()
 lines = [] #
 pattern = r"\b\d+\b" #regex para achar os numeros dentro da string
-matches = re.findall(pattern, first_line)
+matches = re.findall(pattern, first_line) #leitura da primeira linha
 
 if(len(matches) >= 2):
     N = int(matches[0]) #colunas
     M = int(matches[1]) #linhas
 
 
+#leitura do resto das linhas é feita abaixo
 while True:
     rest_of_lines = file.readline()
-    #print(rest_of_lines + "\n")
+    
     numbers_string = rest_of_lines[1:].strip()
     numbers_string = numbers_string.split()
 
     numbers = [int(num) for num in numbers_string]
-    #time.sleep(2)
-    lines.append(numbers)
+
+    lines.append(numbers)#lines no final irá conter todos os sets e seus elementos
     if not rest_of_lines:
         break
 
 
-incidence = np.zeros((M, N), dtype = int) #cria a matrix de incidencia incialmente zerada
+incidence = np.zeros((M, N), dtype = int) #cria a matriz de incidencia incialmente zerada
     
 for subset, row in enumerate(lines):
     for element in row:
         incidence[subset-1][element-1] = 1
 
+#print(incidence) imprime a matriz de incidencia
 
-#model.incidence = pyo.var([0,M-1], [0, N-1], domain = pyo.Binary) 
-model.rows = pyo.RangeSet(M-1)
-model.cols = pyo.RangeSet(N-1)
-model.is_in_solution = pyo.Var(model.rows, domain = pyo.Binary) #declara a variavel que verifica se o conjunto faz parte da solução ou não
+model.rows = pyo.RangeSet(M-1) #passa para o modelo o tamanho das linhas
+model.cols = pyo.RangeSet(N-1) #passa para o modelo o tamanho das colunas
+model.x = pyo.Var(model.rows, within = pyo.Binary) #variavel de decisão binaria
 
-def obj_rule(model):
-    return sum(model.is_in_solution[i] for i in model.rows)
-
-model.obj = pyo.Objective(rule = obj_rule, sense = pyo.maximize)
+#função objetivo é definida aqui
+model.obj = pyo.Objective(expr = sum(model.x[j] for j in model.rows), sense = pyo.maximize)
 
 
+#regra usada na restrição é definida aqui pois a expressão é muito grande
+def constraint1(model, j):
+    return sum(incidence[i-1][j-1]*model.x[j] for i in model.rows if j-1 < len(incidence[i-1])) <= 1
 
-def constraint_rule1(model, i, j):
-    somatorio = 0
-    for i in model.rows:
-        for j in model.cols:
-            somatorio += incidence[i][j]*model.is_in_solution[i]
-    return somatorio <= 1
-
-model.Constraint1 = pyo.Constraint(model.rows, model.cols, rule = constraint_rule1)
+model.constraint = pyo.Constraint(model.rows, rule = constraint1) #definição da restrição
 
 opt = pyo.SolverFactory("glpk")
+start = time.time()# inicio da contagem do tempo
 opt.solve(model)
+finish = time.time() #fim da contagem do tempo
+final_time = finish  - start #calculo do tempo final levado
 model.display()
+
+print("tempo final: " + str(final_time)) #imprime o tempo levado para rodar a otimização
+

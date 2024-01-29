@@ -51,7 +51,9 @@ model.obj = pyo.Objective(expr = sum(model.x[j] for j in model.rows), sense = py
 
 #regra usada na restrição é definida aqui pois a expressão é muito grande
 def constraint1(model, j):
-    return sum(incidence[i-1][j-1]*model.x[j] for i in model.rows if j-1 < len(incidence[i-1])) <= 1
+    return sum(incidence[i-1][j-1]*model.x[j] for i in model.rows if j-1 < len(incidence[i-1])) <= 1 
+
+#disclaimer: a razão dos i-1 e j-1 é puramente pois o codigo começa do indice 0
 
 model.constraint = pyo.Constraint(model.rows, rule = constraint1) #definição da restrição
 

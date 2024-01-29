@@ -43,7 +43,7 @@ for subset, row in enumerate(lines):
 
 model.rows = pyo.RangeSet(M-1) #passa para o modelo o tamanho das linhas
 model.cols = pyo.RangeSet(N-1) #passa para o modelo o tamanho das colunas
-model.x = pyo.Var(model.rows, within = pyo.Binary) #variavel de decisão binaria
+model.x = pyo.Var(model.rows, within = pyo.Binary) #variavel de decisão binaria, garante que a formulação é inteira
 
 #função objetivo é definida aqui
 model.obj = pyo.Objective(expr = sum(model.x[j] for j in model.rows), sense = pyo.maximize)
@@ -60,7 +60,10 @@ start = time.time()# inicio da contagem do tempo
 opt.solve(model)
 finish = time.time() #fim da contagem do tempo
 final_time = finish  - start #calculo do tempo final levado
-model.display()
+model.display()#apesar de sempre ser um numero inteiro, o model.display() imprime como um float
 
+
+print("melhor solução: " + str(int(pyo.value(model.obj))))#imprime o melhor
+print(" ")
 print("tempo final: " + str(final_time)) #imprime o tempo levado para rodar a otimização
 
